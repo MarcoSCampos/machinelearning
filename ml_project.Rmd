@@ -72,14 +72,14 @@ fit<-randomForest(classe~.,data=final_train)
 ```
 ### Model accuracy checking
 To check the model accuracy first we will check "in sample" error to see if everything is all right and after check the with the validation sample to see the final performance.
-```{r, check_model}
+```{r, check_model, results='hold'}
 # Performance "in sample"
 confusionMatrix(final_train$classe,predict(fit,final_train))
 ```
 As we hope the "in sample" performance was perfect with no miss classification in 17,662 cases.
 
 The more close to real is the performace with validation data.  
-```{r, validation}
+```{r, validation, results='hold'}
 confusionMatrix(final_valid$classe,predict(fit,final_valid))
 ```
 As we hope the performance go down a litle, but we had a very nice performace too, only 4 miss classification in 1,960 cases, with accuracy 0.998 and concordance 0.997 (kappa), proving the model quality to do a very good prediction. 
