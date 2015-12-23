@@ -1,0 +1,92 @@
+---
+title: "Practical Machine Learning Project"
+author: "Marco Siqueira Campos"
+date: "23 de dezembro de 2015"
+output: html_document
+---
+
+###Predicting Weight Lifting Exercises 
+This human activity recognition research has traditionally focused on discriminating between different activities, i.e. to predict "which" activity was performed at a specific point in time (like with the Daily Living Activities dataset above). The approach we propose for the Weight Lifting Exercises dataset is to investigate "how (well)" an activity was performed by the wearer. The "how (well)" investigation has only received little attention so far, even though it potentially provides useful information for a large variety of applications,such as sports training.
+This project want to use WLR dataset^1^ to predict how well the exercise are running, based on machine learning algorithm.
+
+### General information and reprodutibility
+The information bellow are to preserve the main information to reproduce the same results.
+
+win 7 pro service pack 1  
+R version 3.2.0 (2015-04-16) -- "Full of Ingredients"  
+Rstudio version 0.99.441 
+```{r install}
+library (caret)
+library(randomForest)
+set.seed(0808)
+```
+
+### Download and read the files
+Download the files and read the files.  
+Here we have the first cleaning activity, change the spaces, 0/div and NA for na
+
+```{r download, cache=TRUE}
+train<-read.csv("~/GitHub/machinelearning/training.csv", na.strings=c("NA","#DIV/0!",""))
+test<-read.csv("~/GitHub/machinelearning/testing.csv", na.strings=c("NA","#DIV/0!",""))
+
+```
+### Clean the data set
+Check the data to see quantity of na's.
+```{r check_na}
+fun_na<-function(x){
+        mean(is.na(x))
+}
+p<-sapply(train[,1:160], fun_na)
+print(p[1:18])
+```
+The results shows we have two kinds of data, variable with no na's and with more than 90% of na in the data, the next step all colunms with na will be removed.
+
+```{r remove_na}
+ctrain<-train[,colSums(is.na(train))==0]
+```
+### Dimensionality reduction
+We need remove the variables that can't help to explain the model
+The fist method is to exclude the variables that not contribute to the variance using nzv function to indentify variable with near zero variance.
+
+```{r remove_nzv}
+nzv<-nearZeroVar(ctrain,saveMetrics=TRUE)
+print(names(ctrain[nzv$nzv==TRUE]))
+```
+Whith the nzv results and checking the data 5 variables will be removed, that can't help the in model, "new window", "X" (only a index) and the "timestamp".
+
+```{r remove_var, echo=FALSE}
+ltrain<-ctrain[,-c(1,3,4,5,6)]
+```
+### Validation sample
+We need split the training data in two data sets one for training and another for data validation (cross validation). We have data in abundance and we will use 10% for validation.
+```{r valid_sample}
+ref_train<-createDataPartition(y=ltrain$classe, p=0.9, list=FALSE)
+final_train<-ltrain[ref_train,]
+final_valid<- ltrain[-ref_train,]
+```
+
+### Data modeling
+To do the prediction we will use the Random Forest model, this model excel in a performance for a non linear models.
+```{r model, cache=TRUE}
+fit<-randomForest(classe~.,data=final_train)
+```
+### Model accuracy checking
+To check the model accuracy first we will check "in sample" error to see if everything is all right and after check the with the validation sample to see the final performance.
+```{r, check_model}
+# Performance "in sample"
+confusionMatrix(final_train$classe,predict(fit,final_train))
+```
+As we hope the "in sample" performance was perfect with no miss classification in 17,662 cases.
+
+The more close to real is the performace with validation data.  
+```{r, validation}
+confusionMatrix(final_valid$classe,predict(fit,final_valid))
+```
+As we hope the performance go down a litle, but we had a very nice performace too, only 4 miss classification in 1,960 cases, with accuracy 0.998 and concordance 0.997 (kappa), proving the model quality to do a very good prediction. 
+
+### Prediction
+The last activity is do a prediction in a "real" test set, using this model we did a right classification in the 20 cases. 
+```{r, prediction}
+answers<-predict(fit, newdata=test)
+```
+##### 1 http://groupware.les.inf.puc-rio.br/collaborator.jsf?p1=evelloso
